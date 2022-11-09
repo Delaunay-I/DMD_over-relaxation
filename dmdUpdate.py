@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import time
 
 from scipy.linalg import lstsq
 from scipy.sparse import csr_matrix
@@ -57,6 +58,8 @@ def ReadMatlabMat(sFileName):
     A = csr_matrix((data['value'], (data['i'], data['j'])), shape= (num_rows, num_cols))
     return A
 
+start = time.time()
+
 print("reading data from file...")
 data = ReadMatlabMat(sFileName)
 X = data.todense() # converting a sparse matrix into a dense one
@@ -92,9 +95,8 @@ I = np.identity(r)
 Gtilde = np.linalg.inv(I - Atilde) @ Atilde
 print(f"Condition number of Atilde: {np.linalg.cond(Atilde)}")
 print(f"Condition number of (I - Atilde): {np.linalg.cond(I - Atilde)}")
-G = Ur @ Gtilde @ Ur.T
+update = Ur @ Gtilde @ (Ur.T @ X2[:, -1])
 
-update = G @ X2[:, -1]
 sOutputName = 'DMDUpdate.dat'
 np.savetxt(sOutputName, update)
 print(f"DMD over-relaxation update created succesfully, and saved as {sOutputName}")
@@ -138,6 +140,14 @@ if calModes:
     X_dmd2 = Phi @ time_dynamics2.T
     sOutputName = 'time_dynamics2.dat'
     np.savetxt(sOutputName, time_dynamics2)
-    
+
+#-------------- error metrics------------
+print("Calculating norms...")
+dotRes = np.dot(Phi.T, Phi)
+np.fill_diagonal(dotRes, 0)
+modesNorm = np.linalg.norm(dotRes, 'fro')
+print(f"\nFrobenius norm of DMD modes: {modesNorm}")
+
+print(f"Total time: {time.time()-start} s")
 
 print("------*** DMD out!! ***-------")
